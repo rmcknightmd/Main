@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glossary &amp; Notation Dictionary | Dr. Ray Theoretical Archive</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body><header class="site-header">
+  <div class="header-container">
+    <a href="index.html" class="brand-title">
+      <span>Dr. Ray — Cosmic Theory Corpus</span>
+      <span class="badge">Research Edition</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Home / Overview</a>
+<a href="core_theories.html">Book Analysis & Themes</a>
+<a href="glossary.html" class="active">Notation & Glossary</a>
+<a href="thinkers.html">Historical Figures</a>
+<a href="bibliography.html">Bibliography & Periodicals</a>
+<a href="pedagogy.html">Pedagogical Tiers</a>
+<a href="reader.html">Manuscript Reader</a>
+
+    </nav>
+  </div>
+</header>
+<main class="main-wrapper">
+  <div class="hero">
+    <h1>Glossary & Notation Dictionary</h1>
+    <p class="lead">
+      Normalized decoding of shorthand codes, symbolic brackets, and thematic concepts from Dr. Ray's manuscript.
+      Click any token row to inspect detailed occurrences and context across all 37,632 paragraphs.
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+    <div class="search-box" style="flex: 2; min-width: 280px; margin-bottom: 0;">
+      <svg viewBox="0 0 24 24"><path d="M10 18a7.952 7.952 0 0 0 4.897-1.688l4.396 4.396 1.414-1.414-4.396-4.396A7.952 7.952 0 0 0 18 10c0-4.411-3.589-8-8-8s-8 3.589-8 8 3.589 8 8 8zm0-14c3.309 0 6 2.691 6 6s-2.691 6-6 6-6-2.691-6-6 2.691-6 6-6z"/></svg>
+      <input type="text" id="glossarySearch" placeholder="Filter tokens (e.g. u, AT1, HMU, toe, k-k, mh+, Carlin)..." autofocus>
+    </div>
+    <div style="flex: 1; min-width: 200px;">
+      <select id="categoryFilter" style="width: 100%; height: 100%; padding: 0.85rem; background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 8px; font-size: 0.95rem;">
+        <option value="">All Conceptual Categories</option>
+        <option value="Cosmology & Spacetime">Cosmology & Spacetime</option>
+        <option value="Quantum Mechanics & Information Theory">Quantum Mechanics & Information Theory</option>
+        <option value="Consciousness, Psyche & Epistemology">Consciousness & Psyche</option>
+        <option value="Critical Thinking, Logic & Epistemic Filters">Critical Thinking & Logic</option>
+        <option value="Health, Mindset & Spiritual Philosophy">Health & Mindset (mh+)</option>
+        <option value="Pedagogical Curriculum & Education">Pedagogical Tiers (gr1-gr9)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table id="glossaryTable">
+      <thead>
+        <tr>
+          <th style="width: 140px;">Token / Code</th>
+          <th style="width: 220px;">Category</th>
+          <th style="width: 280px;">Decoded Expansion</th>
+          <th style="width: 80px;">Count</th>
+          <th>Manuscript In-Text Definitions & Excerpts</th>
+        </tr>
+      </thead>
+      <tbody id="glossaryBody">
+        <!-- Rendered via JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="tokenModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 1.5rem;">
+    <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; max-width: 900px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;">
+      <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="modalTitle" style="color: var(--accent-cyan); font-family: var(--font-mono);">Token</h3>
+        <button id="closeModalBtn" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+      <div id="modalContent" style="padding: 1.5rem; overflow-y: auto; flex: 1;">
+        <!-- Modal content -->
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+let glossaryData = [];
+
+async function loadGlossary() {
+  try {
+    const res = await fetch('data/glossary_enriched.json');
+    glossaryData = await res.json();
+    renderGlossary(glossaryData);
+  } catch (err) {
+    console.error('Failed to load glossary:', err);
+  }
+}
+
+function renderGlossary(items) {
+  const tbody = document.getElementById('glossaryBody');
+  if (!items || items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No matching tokens found.</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = items.map(item => {
+    const tokenDisplay = `<code style="cursor: pointer;" onclick="openModal('${escapeHtml(item.token)}')">[${item.token}]</code>`;
+    const categoryDisplay = `<span class="badge-tag badge-purple">${escapeHtml(item.category)}</span>`;
+    const expDisplay = item.standard_expansion 
+      ? `<strong style="color: var(--text-main);">${escapeHtml(item.standard_expansion)}</strong>` 
+      : '<em style="color: var(--text-dim);">Contextual Symbol</em>';
+    
+    let defsHtml = '-';
+    if (item.explicit_definitions && item.explicit_definitions.length > 0) {
+      defsHtml = item.explicit_definitions.map(d => `<div style="margin-bottom: 0.25rem;">• ${escapeHtml(d)}</div>`).join('');
+    }
+    
+    return `<tr style="cursor: pointer;" onclick="openModal('${escapeHtml(item.token)}')">
+      <td>${tokenDisplay}</td>
+      <td>${categoryDisplay}</td>
+      <td>${expDisplay}</td>
+      <td><span class="badge-tag badge-blue">${item.total_count}</span></td>
+      <td style="font-size: 0.88rem; color: var(--text-muted);">${defsHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openModal(tokenStr) {
+  const item = glossaryData.find(g => g.token === tokenStr);
+  if (!item) return;
+
+  document.getElementById('modalTitle').textContent = `[${item.token}] — ${item.standard_expansion || item.category}`;
+  
+  let contentHtml = `
+    <div style="margin-bottom: 1.5rem;">
+      <p><strong>Category:</strong> <span class="badge-tag badge-purple">${escapeHtml(item.category)}</span></p>
+      <p style="margin-top: 0.5rem;"><strong>Total Occurrences:</strong> ${item.total_count} paragraphs</p>
+    </div>
+  `;
+
+  if (item.explicit_definitions && item.explicit_definitions.length > 0) {
+    contentHtml += `
+      <h4 style="color: var(--text-main); margin-bottom: 0.5rem;">Explicit In-Text Definitions:</h4>
+      <ul style="padding-left: 1.25rem; margin-bottom: 1.5rem; color: var(--text-muted);">
+        ${item.explicit_definitions.map(d => `<li style="margin-bottom: 0.35rem;">${escapeHtml(d)}</li>`).join('')}
+      </ul>
+    `;
+  }
+
+  if (item.occurrences && item.occurrences.length > 0) {
+    contentHtml += `
+      <h4 style="color: var(--text-main); margin-bottom: 0.5rem;">Sample Occurrences & Citations (${item.occurrences.length} shown):</h4>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        ${item.occurrences.map(occ => `
+          <div style="background: var(--bg-card); padding: 0.75rem 1rem; border-radius: 6px; border-left: 3px solid var(--accent-cyan);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan);">Line ${occ.line}</span>
+              <a href="reader.html?line=${occ.line}" style="font-size: 0.8rem;">Open in Reader &rarr;</a>
+            </div>
+            <div style="font-size: 0.88rem; color: var(--text-main);">${escapeHtml(occ.snippet)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  document.getElementById('modalContent').innerHTML = contentHtml;
+  document.getElementById('tokenModal').style.display = 'flex';
+}
+
+document.getElementById('closeModalBtn').addEventListener('click', () => {
+  document.getElementById('tokenModal').style.display = 'none';
+});
+
+document.getElementById('tokenModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('tokenModal')) {
+    document.getElementById('tokenModal').style.display = 'none';
+  }
+});
+
+function filterData() {
+  const q = document.getElementById('glossarySearch').value.toLowerCase().trim();
+  const cat = document.getElementById('categoryFilter').value;
+
+  const filtered = glossaryData.filter(item => {
+    const matchCat = !cat || item.category === cat;
+    const matchQuery = !q || 
+      item.token.toLowerCase().includes(q) ||
+      (item.standard_expansion && item.standard_expansion.toLowerCase().includes(q)) ||
+      (item.explicit_definitions && item.explicit_definitions.some(d => d.toLowerCase().includes(q)));
+    return matchCat && matchQuery;
+  });
+  renderGlossary(filtered);
+}
+
+document.getElementById('glossarySearch').addEventListener('input', filterData);
+document.getElementById('categoryFilter').addEventListener('change', filterData);
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+loadGlossary();
+</script>
+<footer class="site-footer">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <p><strong>Dr. Ray Manuscript Archive & Theoretical Corpus</strong></p>
+    <p style="margin-top: 0.5rem;">Normalized research extraction & interactive knowledge base for GitHub Pages hosting.</p>
+    <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-dim);">Source Manuscript: <code>book Main  26-3-2.docx</code> (37,632 paragraphs)</p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manuscript Full Text Reader | Dr. Ray Theoretical Archive</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body><header class="site-header">
+  <div class="header-container">
+    <a href="index.html" class="brand-title">
+      <span>Dr. Ray — Cosmic Theory Corpus</span>
+      <span class="badge">Research Edition</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Home / Overview</a>
+<a href="core_theories.html">Book Analysis & Themes</a>
+<a href="glossary.html">Notation & Glossary</a>
+<a href="thinkers.html">Historical Figures</a>
+<a href="bibliography.html">Bibliography & Periodicals</a>
+<a href="pedagogy.html">Pedagogical Tiers</a>
+<a href="reader.html" class="active">Manuscript Reader</a>
+
+    </nav>
+  </div>
+</header>
+<main class="main-wrapper">
+  <div class="hero">
+    <h1>Manuscript Full Text Reader</h1>
+    <p class="lead">
+      Browse, search, and examine all 37,632 normalized paragraphs from <code>book Main  26-3-2.docx</code> 
+      with paginated chunk navigation, URL deep-linking, and jump-to-line controls.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 250px;">
+        <label style="display: block; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem;">Select Section / Chunk</label>
+        <select id="chunkSelect" style="width: 100%; padding: 0.6rem; background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.9rem;">
+          <!-- Loaded dynamically -->
+        </select>
+      </div>
+      <div>
+        <label style="display: block; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem;">Jump to Line #</label>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="number" id="jumpLineInput" placeholder="e.g. 500" min="1" max="37632" style="width: 120px; padding: 0.6rem; background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.9rem;">
+          <button id="jumpBtn" style="padding: 0.6rem 1.2rem; background: var(--accent-cyan); color: var(--bg-primary); border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">Jump</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="readerOutput" class="card" style="background: var(--bg-surface); font-family: var(--font-sans); line-height: 1.75; font-size: 0.95rem;">
+    <div style="text-align: center; color: var(--text-muted); padding: 3rem;">Loading manuscript chunks...</div>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+    <button id="prevBtn" style="padding: 0.6rem 1.25rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px; cursor: pointer;">&larr; Previous Chunk</button>
+    <span id="pageInfo" style="color: var(--text-muted); font-size: 0.9rem;">Chunk 1 of 38</span>
+    <button id="nextBtn" style="padding: 0.6rem 1.25rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px; cursor: pointer;">Next Chunk &rarr;</button>
+  </div>
+</main>
+
+<script>
+let manifest = [];
+let currentChunkIndex = 0;
+
+async function initReader() {
+  const res = await fetch('data/manifest.json');
+  manifest = await res.json();
+  
+  const select = document.getElementById('chunkSelect');
+  select.innerHTML = manifest.map(m => {
+    return `<option value="${m.index}">Lines ${m.start_line} - ${m.end_line}: ${escapeHtml(m.preview.substring(0, 60))}...</option>`;
+  }).join('');
+  
+  select.addEventListener('change', (e) => {
+    loadChunk(parseInt(e.target.value, 10));
+  });
+
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    if (currentChunkIndex > 0) loadChunk(currentChunkIndex - 1);
+  });
+
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (currentChunkIndex < manifest.length - 1) loadChunk(currentChunkIndex + 1);
+  });
+
+  document.getElementById('jumpBtn').addEventListener('click', () => {
+    const line = parseInt(document.getElementById('jumpLineInput').value, 10);
+    if (!isNaN(line) && line >= 1 && line <= 37632) {
+      const targetChunk = Math.floor((line - 1) / 1000);
+      loadChunk(targetChunk, line);
+    }
+  });
+
+  // Check URL param ?line=
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetLineParam = parseInt(urlParams.get('line'), 10);
+  if (!isNaN(targetLineParam) && targetLineParam >= 1 && targetLineParam <= 37632) {
+    const targetChunk = Math.floor((targetLineParam - 1) / 1000);
+    loadChunk(targetChunk, targetLineParam);
+  } else {
+    loadChunk(0);
+  }
+}
+
+async function loadChunk(index, scrollToLine = null) {
+  currentChunkIndex = index;
+  document.getElementById('chunkSelect').value = index;
+  document.getElementById('pageInfo').textContent = `Chunk ${index + 1} of ${manifest.length} (Lines ${manifest[index].start_line} - ${manifest[index].end_line})`;
+  
+  const output = document.getElementById('readerOutput');
+  output.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading chunk text...</div>';
+  
+  try {
+    const res = await fetch(`data/${manifest[index].file}`);
+    const data = await res.json();
+    
+    let htmlContent = '';
+    data.paragraphs.forEach((p, idx) => {
+      const lineNum = data.start_line + idx;
+      const idAttr = `id="line-${lineNum}"`;
+      
+      let highlighted = escapeHtml(p).replace(/\[([a-zA-Z0-9_\-\+\>\<\?\! ]{1,30})\]/g, '<span class="token-pill">[$1]</span>');
+      highlighted = highlighted.replace(/\{([a-zA-Z0-9_\-\+\>\<\?\! ]{1,30})\}/g, '<span class="token-pill" style="border-color: #a855f7; color: #c084fc;">{$1}</span>');
+
+      htmlContent += `<div ${idAttr} style="padding: 0.6rem 0.5rem; border-bottom: 1px solid rgba(71, 85, 105, 0.3); display: flex; gap: 1rem;">
+        <span style="font-family: var(--font-mono); color: var(--text-dim); font-size: 0.8rem; user-select: none; width: 55px; text-align: right; flex-shrink: 0;">${lineNum}</span>
+        <div style="flex: 1;">${highlighted}</div>
+      </div>`;
+    });
+    
+    output.innerHTML = htmlContent;
+    
+    if (scrollToLine) {
+      setTimeout(() => {
+        const el = document.getElementById(`line-${scrollToLine}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.background = 'rgba(56, 189, 248, 0.25)';
+          el.style.borderRadius = '4px';
+        }
+      }, 200);
+    }
+  } catch (err) {
+    output.innerHTML = `<div style="color: var(--accent-rose); padding: 2rem;">Error loading chunk: ${err.message}</div>`;
+  }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+initReader();
+</script>
+<footer class="site-footer">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <p><strong>Dr. Ray Manuscript Archive & Theoretical Corpus</strong></p>
+    <p style="margin-top: 0.5rem;">Normalized research extraction & interactive knowledge base for GitHub Pages hosting.</p>
+    <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-dim);">Source Manuscript: <code>book Main  26-3-2.docx</code> (37,632 paragraphs)</p>
+  </div>
+</footer>
+</body>
+</html>
